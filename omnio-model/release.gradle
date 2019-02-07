@@ -1,0 +1,41 @@
+apply plugin: 'maven-publish'
+apply plugin: 'pl.allegro.tech.build.axion-release'
+scmVersion {
+  tag {
+    prefix = rootProject.name
+  }
+  nextVersion {
+    suffix = 'SNAPSHOT'
+    separator = '-'
+  }
+  checks {
+    uncommittedChanges = false
+    aheadOfRemote = false
+    snapshotDependencies = false
+  }
+  repository {
+    customUsername = rootProject.findProperty('release.customUsername') ?: System.getenv("SCM_USERNAME")
+    customPassword = rootProject.findProperty('release.customPassword') ?: System.getenv("SCM_PASSWORD")
+  }
+}
+project.version = scmVersion.version
+project.logger.lifecycle("VERSION=${project.version}")
+publishing {
+  repositories {
+    maven {
+      def snapShotRepo = 'https://jumpco.jfrog.io/jumpco/list/libs-snapshot-local'
+      def releaseRepo = 'https://jumpco.jfrog.io/jumpco/list/libs-release-local'
+      credentials {
+        username System.getenv('MAVEN_USERNAME')
+        password System.getenv('MAVEN_PASSWORD')
+      }
+      url project.version.endsWith('SNAPSHOT') ? snapShotRepo : releaseRepo
+    }
+  }
+  publications {
+    publishDistribution(MavenPublication) {
+      version project.version
+      from components.java
+    }
+  }
+}

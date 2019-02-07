@@ -1,0 +1,59 @@
+image: java:8
+
+definitions:
+  caches:
+    gradlewrapper: ~/.gradle/wrapper
+
+pipelines:
+  default:
+  - step:
+      caches:
+      - gradle
+      - gradlewrapper
+      script:
+      #          - bash apt install erlang
+      - bash ./gradlew -S -i --no-daemon --no-scan build publish -x integration
+  custom:
+    deploy-dev:
+    - step:
+        deployment: test
+        caches:
+        - gradle
+        - gradlewrapper
+        script:
+        - bash ./gradlew -S -i --no-daemon --no-scan cf-push -PcfSpace=dev -x test -x integration
+    deploy-staging:
+    - step:
+        deployment: staging
+        caches:
+        - gradle
+        - gradlewrapper
+        script:
+        - bash ./gradlew -S -i --no-daemon --no-scan cf-push -PcfSpace=dev_US -x test -x integration
+    deploy-prod:
+    - step:
+        deployment: production
+        caches:
+        - gradle
+        - gradlewrapper
+        script:
+        - bash ./gradlew -S -i --no-daemon --no-scan cf-push -PcfSpace=prod -x test -x integration
+    perform-release:
+    - step:
+        caches:
+        - gradle
+        - gradlewrapper
+        script:
+        - bash ./scripts/check-release.sh
+        - git checkout master
+        - git config --global user.email "$email"
+        - git config --global user.name "$SCM_USERNAME"
+        - git remote set-url origin $SCM_URL
+        - bash ./gradlew -S --no-daemon clean currentVersion -Prelease.pushTagsOnly
+        - git tag
+        - bash ./gradlew -S --no-daemon --debug release -Prelease.pushTagsOnly -Prelease.disableChecks -Prelease.attachRemote=$SCM_REMOTE_URL -x test
+        - bash ./gradlew -S --no-daemon --info publish -Prelease.pushTagsOnly -x test -x integration
+        - bash ./gradlew -S --no-daemon --info markNextVersion -Prelease.pushTagsOnly -Prelease.disableChecks -x test
+        - git tag
+        - bash ./gradlew -S --no-daemon currentVersion -x test
+        - git tag

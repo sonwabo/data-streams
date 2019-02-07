@@ -1,0 +1,34 @@
+image: java:8
+
+definitions:
+  caches:
+    gradlewrapper: ~/.gradle/wrapper
+
+pipelines:
+  default:
+    - step:
+        caches:
+          - gradle
+          - gradlewrapper
+        script:
+          - bash ./gradlew -S -i --no-daemon --no-scan build publish -Prelease.forceSnapshot
+  custom:
+    perform-release:
+      - step:
+          caches:
+            - gradle
+            - gradlewrapper
+          script:
+            - bash ./scripts/check-release.sh
+            - git checkout master
+            - git config --global user.email "$email"
+            - git config --global user.name "$SCM_USERNAME"
+            - git remote set-url origin $SCM_REMOTE_URL
+            - bash ./gradlew -S --no-daemon clean currentVersion -Prelease.pushTagsOnly
+            - git tag
+            - bash ./gradlew -S --no-daemon --debug release -Prelease.pushTagsOnly -Prelease.disableChecks -Prelease.attachRemote=$SCM_REMOTE_URL
+            - bash ./gradlew -S --no-daemon --info publish -Prelease.pushTagsOnly
+            - bash ./gradlew -S --no-daemon --info markNextVersion -Prelease.pushTagsOnly -Prelease.disableChecks
+            - git tag
+            - bash ./gradlew -S --no-daemon currentVersion
+            - git tag

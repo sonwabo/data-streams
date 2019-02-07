@@ -1,0 +1,38 @@
+apply plugin: 'cf-app'
+
+def cfPushPath = file("${project.buildDir}/libs/${project.name}.jar")
+if (rootProject.hasProperty('cfPushVersion')) {
+    // depend on fetch dependency
+} else {
+    tasks.findByName('cf-push').dependsOn(assemble)
+}
+def cfUser = project.findProperty('cfUser') ?: System.getenv('CF_USER')
+def cfPassword = project.findProperty('cfPassword') ?: System.getenv('CF_PASSWORD')
+def cfToken = project.findProperty('cfToken') ?: System.getenv('CF_TOKEN')
+def cfSpace = project.findProperty('cfSpace') ?: System.getenv('CF_SPACE') ?: 'dev'
+
+cfConfig {
+    ccHost = cfSpace == 'dev_US' ? 'api.ng.bluemix.net' : 'api.eu-gb.bluemix.net'
+    if (cfUser) {
+        ccUser = cfUser
+    }
+    if (cfPassword) {
+        ccPassword = cfPassword
+    }
+    if (cfToken) {
+        ccToken = cfToken
+    }
+    org = 'omnio'
+    space = cfSpace
+    console = logger.isInfoEnabled()
+    debug = logger.isDebugEnabled()
+    name = project.name
+    timeout = 120
+    startupTimeout = 3
+    stagingTimeout = 5
+    filePath = file(cfPushPath)
+    memory = 2048
+    buildpack = 'https://github.com/cloudfoundry/java-buildpack.git'
+    environment = ['SPRING_PROFILES_ACTIVE': "cloudfoundry,${cfSpace}".toString()]
+    services = ['eureka', 'omnio_cloudant', 'omnio-streams', 'omnio-mq']
+}

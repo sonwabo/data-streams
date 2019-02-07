@@ -1,0 +1,14 @@
+{
+  "deviceType": "SC",
+  "deviceId": "666BA2E80593E41E",
+  "eventType": "event",
+  "format": "json",
+  "timestamp": "2018-10-16T14:23:06.843+02:00",
+  "data": {
+    "d": {
+      "ID": "666BA2E80593E41E",
+      "CO2": "333.6352",
+      "NH3": "-1.0000"
+    }
+  }
+}
